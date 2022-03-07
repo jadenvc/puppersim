@@ -18,10 +18,10 @@ class SimpleForwardTask(task_interface.Task):
   """A basic "move forward" task."""
 
   def __init__(self,
-               weight=0.1,
+               weight=1.0,
                terminal_condition=terminal_conditions
                .default_terminal_condition_for_minitaur,
-               divide_with_dt=True,
+               divide_with_dt=False,
                clip_velocity=None,
                energy_penalty_coef=0.0,
                torque_penalty_coef=0.0,
@@ -107,26 +107,16 @@ class SimpleForwardTask(task_interface.Task):
       action_acceleration_penalty = (
           float(self._weight_action_accel) * np.mean(np.abs(acc)))
 
-    # c = 20
-    desired_velocity = env.desired_velocity
-    # desired_velocity = 0.34
-    # reward = c - (desired_velocity-velocity)/velocity
-    # reward -= action_acceleration_penalty
-
-    reward = -abs(desired_velocity-velocity)/desired_velocity
+    reward = velocity
+    reward -= action_acceleration_penalty
 
     # Energy
     if self._energy_penalty_coef > 0:
       energy_reward = -task_utils.calculate_estimated_energy_consumption(
           self._env.robot.motor_torques, self._env.robot.motor_velocities,
           self._env.sim_time_step, self._env.num_action_repeat)
-      # reward += energy_reward * self._energy_penalty_coef
+      reward += energy_reward * self._energy_penalty_coef
 
-<<<<<<< HEAD
-    self._torque_penalty_coef = 0.01
-
-=======
->>>>>>> 9d148ff37d68619f09bd5d893a35f0a3aaf88eef
     if self._torque_penalty_coef > 0:
       torque_reward = -self._torque_penalty_coef * np.dot(
           self._env.robot.motor_torques, self._env.robot.motor_torques)
