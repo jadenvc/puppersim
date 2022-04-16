@@ -23,8 +23,8 @@ class ReacherEnv(gym.Env):
     if torque_control:
       self._motor_control = pybullet.TORQUE_CONTROL
       self.action_space = gym.spaces.Box(
-        np.array([-1, -1, -1]),
-        np.array([1, 1, 1]),
+        np.array([-0.01, -0.01, -0.01]),
+        np.array([0.01, 0.01, 0.01]),
         dtype=np.float32)
     else:
       self._motor_control = pybullet.POSITION_CONTROL
@@ -33,9 +33,14 @@ class ReacherEnv(gym.Env):
         np.array([0.9*math.pi, 0.8*math.pi, math.pi]),
         dtype=np.float32)
 
+    # self.observation_space = gym.spaces.Box(
+    #     np.array([-1, -1, -1, -1, -1, -1, 0.05, 0.05, 0.05, -0.3, -0.3, -0.3]),
+    #     np.array([1, 1, 1, 1, 1, 1, 0.1, 0.1, 0.1, 0.3, 0.3, 0.3]),
+    #     dtype=np.float32)
+
     self.observation_space = gym.spaces.Box(
-        np.array([-1, -1, -1, -1, -1, -1, 0.05, 0.05, 0.05, -0.3, -0.3, -0.3]),
-        np.array([1, 1, 1, 1, 1, 1, 0.1, 0.1, 0.1, 0.3, 0.3, 0.3]),
+        np.array([-1, -1, -1, -1, -1, -1, -0.2, -0.2, -0.2, -10, -10, -10, -0.3, -0.3, -0.3]),
+        np.array([1, 1, 1, 1, 1, 1, 0.2, 0.2, 0.2, 10, 10, 10, 0.3, 0.3, 0.3]),
         dtype=np.float32)
 
     self._run_on_robot = run_on_robot
@@ -72,10 +77,10 @@ class ReacherEnv(gym.Env):
                                        controlMode=self._bullet_client.POSITION_CONTROL,
                                        targetVelocity=0,
                                        force=0)
-    self.target = np.random.uniform(0.05, 0.1, 3)
+    # self.target = np.random.uniform(0.05, 0.1, 3)
     # self.target = np.array([0.07, 0.07, 0.07])
-    # target_angles = np.random.uniform(-0.05*math.pi, 0.05*math.pi, 3)
-    # self.target = self._forward_kinematics(target_angles)
+    target_angles = np.random.uniform(-0.5*math.pi, 0.5*math.pi, 3)
+    self.target = reacher_kinematics.calculate_forward_kinematics_robot(target_angles)
 
     self._target_visual_shape = self._bullet_client.createVisualShape(self._bullet_client.GEOM_SPHERE, radius=0.015)
 
@@ -136,7 +141,7 @@ class ReacherEnv(gym.Env):
         np.cos(joint_angles),
         np.sin(joint_angles),
         self.target,
-        # joint_velocities,
+        joint_velocities,
         self._get_vector_from_end_effector_to_goal(),
     ])
 
@@ -174,7 +179,7 @@ class ReacherEnv(gym.Env):
         torques.append(action)
     # print("torques: ", torques)
     reward_dist = -np.linalg.norm(self._get_vector_from_end_effector_to_goal())
-    reward_ctrl = -0.1*np.square(torques).sum()
+    reward_ctrl = -0.5*np.square(torques).sum()
     # print("rc", reward_ctrl, "rd", reward_dist, "torques", torques)
     reward = reward_dist + reward_ctrl
 
