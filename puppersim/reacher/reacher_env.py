@@ -18,19 +18,25 @@ MAX_CURRENT = 4.0
 
 class ReacherEnv(gym.Env):
 
-  def __init__(self, run_on_robot=False, render=False):
-    self.action_space = gym.spaces.Box(
+  def __init__(self, run_on_robot=False, render=False, torque_control=False):
+    self.target = np.random.uniform(0.05, 0.1, 3)
+    if torque_control:
+      self._motor_control = pybullet.TORQUE_CONTROL
+      self.action_space = gym.spaces.Box(
+        np.array([-1, -1, -1]),
+        np.array([1, 1, 1]),
+        dtype=np.float32)
+    else:
+      self._motor_control = pybullet.POSITION_CONTROL
+      self.action_space = gym.spaces.Box(
         np.array([-0.9*math.pi, -0.8*math.pi, -math.pi]),
         np.array([0.9*math.pi, 0.8*math.pi, math.pi]),
         dtype=np.float32)
+
     self.observation_space = gym.spaces.Box(
         np.array([-1, -1, -1, -1, -1, -1, 0.05, 0.05, 0.05, -0.3, -0.3, -0.3]),
         np.array([1, 1, 1, 1, 1, 1, 0.1, 0.1, 0.1, 0.3, 0.3, 0.3]),
         dtype=np.float32)
-
-    self._second_arm_position = np.array([0., 0., 0.])
-
-    self.target = np.random.uniform(0.05, 0.1, 3)
 
     self._run_on_robot = run_on_robot
     if self._run_on_robot:
@@ -90,11 +96,25 @@ class ReacherEnv(gym.Env):
 
   def _apply_actions(self, actions):
     for joint_id, action in zip(range(self.num_joints), actions):
+      joint_velocity=self._bullet_client.getJointState(self.robot_id, joint_id)[1]
+      joint_pos=self._bullet_client.getJointState(self.robot_id, joint_id)[0]
+      # print("jv: ", joint_velocity)
+      # if joint_id==2:
+        # print("jp: ", joint_pos)
+      # print("act", actions)
       # Disables the default motors in PyBullet.
-      self._bullet_client.setJointMotorControl2(bodyIndex=self.robot_id,
-                                     jointIndex=joint_id,
-                                     controlMode=pybullet.POSITION_CONTROL,
-                                     targetPosition=action)
+      # print("actions applied: ", actions)
+      if self._motor_control == pybullet.POSITION_CONTROL:
+        self._bullet_client.setJointMotorControl2(bodyIndex=self.robot_id,
+                                      jointIndex=joint_id,
+                                      controlMode=self._motor_control,
+                                      targetPosition=action,
+                                      maxVelocity=1)
+      else:
+        self._bullet_client.setJointMotorControl2(bodyIndex=self.robot_id,
+                                      jointIndex=joint_id,
+                                      controlMode=self._motor_control,
+                                      force=action)
                                      
 
   def _apply_actions_on_robot(self, actions):
@@ -110,7 +130,6 @@ class ReacherEnv(gym.Env):
     joint_states = self._bullet_client.getJointStates(self.robot_id,
                                            list(range(self.num_joints)))
     joint_angles = [joint_data[0] for joint_data in joint_states][0:3]
-    print("joint angles", joint_angles)
     joint_velocities = [joint_data[1] for joint_data in joint_states][0:3]
     # return np.array(self.target)
     return np.concatenate([
@@ -137,6 +156,8 @@ class ReacherEnv(gym.Env):
 
   def step(self, actions):
 
+    # print("actions: ", actions)
+
     if self._run_on_robot:
       self._apply_actions_on_robot(actions)
       ob = self._get_obs_on_robot()
@@ -145,8 +166,16 @@ class ReacherEnv(gym.Env):
       ob = self._get_obs()
       self._bullet_client.stepSimulation()
 
+    torques = []
+    for joint_id, action in zip(range(self.num_joints), actions):
+      if self._motor_control == pybullet.POSITION_CONTROL:
+        torques.append(self._bullet_client.getJointState(self.robot_id, joint_id)[3])
+      else:
+        torques.append(action)
+    # print("torques: ", torques)
     reward_dist = -np.linalg.norm(self._get_vector_from_end_effector_to_goal())
-    reward_ctrl = 0
+    reward_ctrl = -0.1*np.square(torques).sum()
+    # print("rc", reward_ctrl, "rd", reward_dist, "torques", torques)
     reward = reward_dist + reward_ctrl
 
     done = False
