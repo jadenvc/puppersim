@@ -179,7 +179,7 @@ class ReacherEnv(gym.Env):
         torques.append(action)
     # print("torques: ", torques)
     reward_dist = -np.linalg.norm(self._get_vector_from_end_effector_to_goal())
-    reward_ctrl = -0.5*np.square(torques).sum()
+    reward_ctrl = -0.1*np.square(torques).sum()
     # print("rc", reward_ctrl, "rd", reward_dist, "torques", torques)
     reward = reward_dist + reward_ctrl
 
