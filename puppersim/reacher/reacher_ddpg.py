@@ -277,7 +277,8 @@ def ddpg(
 
     done = True
 
-    for step in tqdm.tqdm(range(num_steps)):
+    # for step in tqdm.tqdm(range(num_steps)):
+    for step in tqdm.tqdm(range(150_000)):
         for _ in range(transitions_per_step):
             # collect experience from the environment, sampling from
             # the current policy (with added noise for exploration)
@@ -397,12 +398,12 @@ if __name__ == "__main__":
     parser.add_argument("--train_steps", type=int, default=50_000)
     parser.add_argument("--name", type=str, default="ddpg_run")
     parser.add_argument("--max_episode_steps", type=int, default=100)
-    parser.add_argument("--torque_control", type=bool, default=False)
+    parser.add_argument("--motor_control", type=str, default="position")
     args = parser.parse_args()
 
     if args.env == "reacher":
-        train_env = ReacherEnv(render=False, torque_control=args.torque_control)
-        test_env = ReacherEnv(render=True, torque_control=args.torque_control)
+        train_env = ReacherEnv(render=False, motor_control=args.motor_control)
+        test_env = ReacherEnv(render=True, motor_control=args.motor_control)
     else:
         train_env = gym.make(args.env)
         test_env = gym.make(args.env)

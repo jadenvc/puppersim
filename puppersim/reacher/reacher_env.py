@@ -18,10 +18,17 @@ MAX_CURRENT = 4.0
 
 class ReacherEnv(gym.Env):
 
-  def __init__(self, run_on_robot=False, render=False, torque_control=False):
+  def __init__(self, run_on_robot=False, render=False, motor_control="position"):
+    self.cur_angles = np.array([0, 0, 0])
     self.target = np.random.uniform(0.05, 0.1, 3)
-    if torque_control:
+    if motor_control == "torque":
       self._motor_control = pybullet.TORQUE_CONTROL
+      self.action_space = gym.spaces.Box(
+        np.array([-0.01, -0.01, -0.01]),
+        np.array([0.01, 0.01, 0.01]),
+        dtype=np.float32)
+    elif motor_control == "velocity":
+      self._motor_control = pybullet.VELOCITY_CONTROL
       self.action_space = gym.spaces.Box(
         np.array([-0.01, -0.01, -0.01]),
         np.array([0.01, 0.01, 0.01]),
@@ -29,8 +36,8 @@ class ReacherEnv(gym.Env):
     else:
       self._motor_control = pybullet.POSITION_CONTROL
       self.action_space = gym.spaces.Box(
-        np.array([-0.9*math.pi, -0.8*math.pi, -math.pi]),
-        np.array([0.9*math.pi, 0.8*math.pi, math.pi]),
+        np.array([-math.pi, -math.pi, -math.pi]),
+        np.array([math.pi, math.pi, math.pi]),
         dtype=np.float32)
 
     # self.observation_space = gym.spaces.Box(
@@ -100,6 +107,9 @@ class ReacherEnv(gym.Env):
     return inverse_kinematics
 
   def _apply_actions(self, actions):
+    if self._motor_control == pybullet.VELOCITY_CONTROL:
+      actions = self.cur_angles + np.array(actions)
+      self.cur_angles = actions
     for joint_id, action in zip(range(self.num_joints), actions):
       joint_velocity=self._bullet_client.getJointState(self.robot_id, joint_id)[1]
       joint_pos=self._bullet_client.getJointState(self.robot_id, joint_id)[0]
@@ -109,18 +119,22 @@ class ReacherEnv(gym.Env):
       # print("act", actions)
       # Disables the default motors in PyBullet.
       # print("actions applied: ", actions)
-      if self._motor_control == pybullet.POSITION_CONTROL:
-        self._bullet_client.setJointMotorControl2(bodyIndex=self.robot_id,
-                                      jointIndex=joint_id,
-                                      controlMode=self._motor_control,
-                                      targetPosition=action,
-                                      maxVelocity=1)
-      else:
+      if self._motor_control == pybullet.TORQUE_CONTROL:
         self._bullet_client.setJointMotorControl2(bodyIndex=self.robot_id,
                                       jointIndex=joint_id,
                                       controlMode=self._motor_control,
                                       force=action)
-                                     
+      elif self._motor_control == pybullet.VELOCITY_CONTROL:
+        self._bullet_client.setJointMotorControl2(bodyIndex=self.robot_id,
+                                      jointIndex=joint_id,
+                                      controlMode=pybullet.POSITION_CONTROL,
+                                      targetPosition=action)
+      else:
+        self._bullet_client.setJointMotorControl2(bodyIndex=self.robot_id,
+                                      jointIndex=joint_id,
+                                      controlMode=self._motor_control,
+                                      targetPosition=action,
+                                      maxVelocity=10)                          
 
   def _apply_actions_on_robot(self, actions):
     full_actions = np.zeros([3, 4])
