@@ -30,8 +30,8 @@ class ReacherEnv(gym.Env):
     elif motor_control == "velocity":
       self._motor_control = pybullet.VELOCITY_CONTROL
       self.action_space = gym.spaces.Box(
-        np.array([-0.01, -0.01, -0.01]),
-        np.array([0.01, 0.01, 0.01]),
+        np.array([-0.001, -0.001, -0.001]),
+        np.array([0.001, 0.001, 0.001]),
         dtype=np.float32)
     else:
       self._motor_control = pybullet.POSITION_CONTROL
