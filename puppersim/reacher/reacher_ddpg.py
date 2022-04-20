@@ -277,8 +277,8 @@ def ddpg(
 
     done = True
 
-    # for step in tqdm.tqdm(range(num_steps)):
-    for step in tqdm.tqdm(range(150_000)):
+    for step in tqdm.tqdm(range(num_steps)):
+    # for step in tqdm.tqdm(range(150_000)):
         for _ in range(transitions_per_step):
             # collect experience from the environment, sampling from
             # the current policy (with added noise for exploration)
