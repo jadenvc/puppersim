@@ -88,6 +88,7 @@ class PupperRobot(quadruped_base.QuadrupedBase):
       joint_angles: The desired joint angles after resetting. Will use the
         configured values if None.
     """
+    print("RESETTING")
     self._robot_state = None
     self._last_action = None
 
@@ -98,6 +99,7 @@ class PupperRobot(quadruped_base.QuadrupedBase):
 
 
     joint_angles = [-0.2, 0.5, -1.2, 0.2, 0.5, -1.2, -0.2, 0.5, -1.2, 0.2, 0.5 ,-1.2]
+    joint_angles = [-0.0, 1.57, -2.7, 0.0, 1.57, -2.7, -0.0, 1.57, -2.7, 0.0, 1.57 ,-2.7]
     super().reset(base_position, base_orientation_quaternion, joint_angles)
 
     # Receive another state at the end of the reset sequence. Though it is
@@ -138,6 +140,9 @@ class PupperRobot(quadruped_base.QuadrupedBase):
 
     # Get an initial state.
     self._get_state()
+    # print(desired_motor_angles)
+  #   [-0.04671013  1.5758121  -2.74393821 -0.01296598  1.551162   -2.71760511
+  # 0.03422871  1.55576384 -2.68545532 -0.02067855  1.51460195 -2.67727399]
     initial_motor_angles = self.motor_angles
     sequence_start_time = self._clock()
     time_since_start = 0
@@ -164,6 +169,7 @@ class PupperRobot(quadruped_base.QuadrupedBase):
     start = time.time()
     self._hardware_interface.read_incoming_data()
     self._robot_state = self._hardware_interface.robot_state
+    # print("roll pitch ", self._robot_state.roll, self._robot_state.pitch)
     self.last_state_time = self._clock()
     if self._profile:
       print("PupperRobot._get_state(): ", time.time() - start)
@@ -249,6 +255,7 @@ class PupperRobot(quadruped_base.QuadrupedBase):
        REAR_RIGHT_ABDUCTION, REAR_RIGHT_HIP, REAR_RIGHT_KNEE,
        REAR_LEFT_ABDUCTION, REAR_LEFT_HIP, REAR_LEFT_KNEE]
     """
+    # breakpoint()
     return np.asarray(self._robot_state.position)
 
   @property

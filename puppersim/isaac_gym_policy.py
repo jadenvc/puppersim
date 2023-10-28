@@ -93,6 +93,7 @@ class IsaacGymPolicy(object):
                                      0.2, 0.5, -1.2,
                                      -0.2, 0.5, -1.2,
                                      0.2, 0.5, -1.2])
+    
 
     self.device = device
     self.policy = actor_critic_policy.act_inference
@@ -107,11 +108,16 @@ class IsaacGymPolicy(object):
    
     rp = torch.tensor(obs['IMU'][:2] * orientation_scale)
     rp_dot = torch.tensor(obs['IMU'][2:] * angular_velocity_scale)
+    # rp = torch.tensor([0,0])
+    # rp_dot = torch.tensor([0,0])
     motor_angle = torch.tensor((obs['MotorAngle'] - self.default_dof_pos) * joint_angle_scale) 
     command = torch.tensor(obs['command'] * command_scale)
     last_action = torch.tensor(self.last_action * last_action_scale)
+    # print("last action", last_action)
     new_obs =  torch.cat([rp[[1]], rp[[0]], rp_dot[[1]], rp_dot[[0]], motor_angle, command, last_action])
+    # new_obs =  torch.cat([0, 0, 0, 0, motor_angle, command, last_action])
     #new_obs = torch.cat([rp, rp_dot, motor_angle, command, last_action])
+    # print("last obs", new_obs)
     
     return torch.tensor(new_obs, device=self.device)
 
@@ -132,6 +138,7 @@ class IsaacGymPolicy(object):
     # Now needs to convert the action to the joint angles.
     # action = torch.clip(action, -clip_actions, clip_actions).to(self.device)
 
+    
     action_scaled = action * action_scale
     motor_targets = action_scaled + default_dof_pos
 
@@ -144,7 +151,8 @@ def run_example(num_max_steps=_NUM_STEPS):
   Args:
     num_max_steps: Maximum number of steps this example should run for.
   """
-  path = '/home/pi/nov_6_model1.pt'
+  # path = '/home/pi/s_model_1500_g_1.pt'
+  path = '/home/pi/puppersim_deploy/puppersim/s_model_250.pt' #model_nr
   device = 'cpu'
 
   policy = IsaacGymPolicy(path, device)
@@ -164,7 +172,7 @@ def run_example(num_max_steps=_NUM_STEPS):
   # https://github.com/bulletphysics/bullet3/blob/48dc1c45da685c77d3642545c4851b05fb3a1e8b/examples/pybullet/gym/pybullet_envs/minitaur/robots/quadruped_base.py#L131
   # print("env.action_space=",env.action_space)
   obs = env.reset()
-  input("Press enter to start")
+  # input("Press enter to start")
   last_control_step = time.time()
   log_dict = {
       't': [],
@@ -186,8 +194,8 @@ def run_example(num_max_steps=_NUM_STEPS):
         if sleep_time > 0:
           time.sleep(sleep_time)
         elif sleep_time < -1 and time.time() - last_spammy_log > 1.0:
-          print(f"Cannot keep up with realtime. {-sleep_time:.2f} sec behind, "
-                f"sim/wall ratio {(sim_elapsed/wall_elapsed):.2f}.")
+          # print(f"Cannot keep up with realtime. {-sleep_time:.2f} sec behind, ",
+          #       f"sim/wall ratio {(sim_elapsed/wall_elapsed):.2f}.")
           last_spammy_log = time.time()
 
       before_step_timestamp = time.time()
@@ -202,8 +210,11 @@ def run_example(num_max_steps=_NUM_STEPS):
       #print('motor_targets', action)
       #print('motor angles', env.robot.motor_angles) 
       obs, reward, done, _ = env.step(action)
+      # print(obs['MotorAngle'])
       # print(obs)
       after_step_timestamp = time.time()
+      # print("observation: ", obs)
+      # print("action: ", action)
       log_dict['IMU'].append(obs['IMU'])
       log_dict['MotorAngle'].append(obs['MotorAngle'])
       log_dict['action'].append(action)

@@ -1,8 +1,8 @@
 import numpy as np
 import time
-#from src.State import BehaviorState, State
-#from src.Command import Command
-#from src.Utilities import deadband, clipped_first_order_filter
+# from src.State import BehaviorState, State
+# from src.Command import Command
+# from src.Utilities import deadband, clipped_first_order_filter
 
 import hid
 
@@ -68,7 +68,7 @@ class JoystickInterface:
         #command.activate_event = activate_toggle and (self.prev_activate_toggle == False)
         #command.deactivate_event = deactivate_toggle and (self.prev_deactivate_toggle == False)
 
-        move_event = move_toggle and ((self.prev_move_toggle == False) or command.activate_event)
+        move_event = move_toggle and ((self.prev_move_toggle == False))# or command.activate_event)
 
         #command.trot_event = trot_toggle and (((self.prev_trot_toggle == False) and move_toggle) or move_event)
         #command.walk_event = walk_toggle and (((self.prev_walk_toggle == False) and move_toggle) or move_event)
@@ -87,7 +87,7 @@ class JoystickInterface:
         ####### Handle continuous commands ########
         input_curve = lambda x: np.sign(x) * min(x ** 2, 1)
         x_vel = input_curve(msg["ly"]) * 0.6 #self.config.max_x_velocity
-        y_vel = input_curve(msg["lx"]) * 0.8 #-self.config.max_y_velocity
+        y_vel = input_curve(msg["lx"]) * 0.9 #-self.config.max_y_velocity
         command['horizontal_velocity'] = np.array([x_vel, y_vel])
         command['yaw_rate'] = msg["rx"] * 1.2# -self.config.max_yaw_rate
 
